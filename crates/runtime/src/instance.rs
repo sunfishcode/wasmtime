@@ -430,8 +430,8 @@ impl Instance {
     /// dereference the memory import's pointers.
     pub(crate) unsafe fn imported_memory_size(&self, memory_index: MemoryIndex) -> u32 {
         let import = self.imported_memory(memory_index);
-        let foreign_instance = (&mut *import.vmctx).instance();
-        let foreign_memory = &mut *import.from;
+        let foreign_instance = (&*import.vmctx).instance();
+        let foreign_memory = &*import.from;
         let foreign_index = foreign_instance.memory_index(foreign_memory);
 
         foreign_instance.memory_size(foreign_index)
@@ -745,8 +745,8 @@ impl Instance {
     /// Get an imported, foreign table.
     pub(crate) fn get_foreign_table(&self, index: TableIndex) -> &Table {
         let import = self.imported_table(index);
-        let foreign_instance = unsafe { (&mut *(import).vmctx).instance() };
-        let foreign_table = unsafe { &mut *(import).from };
+        let foreign_instance = unsafe { (&*import.vmctx).instance() };
+        let foreign_table = unsafe { &*import.from };
         let foreign_index = foreign_instance.table_index(foreign_table);
         &foreign_instance.tables[foreign_index]
     }
@@ -919,7 +919,7 @@ impl InstanceHandle {
     /// This is unsafe because it doesn't work on just any `VMContext`, it must
     /// be a `VMContext` allocated as part of an `Instance`.
     pub unsafe fn from_vmctx(vmctx: *mut VMContext) -> Self {
-        let instance = (&mut *vmctx).instance();
+        let instance = (&*vmctx).instance();
         Self {
             instance: instance as *const Instance as *mut Instance,
         }
@@ -1100,8 +1100,8 @@ unsafe fn get_memory_slice<'instance>(
         instance.memory(defined_memory_index)
     } else {
         let import = instance.imported_memory(init.location.memory_index);
-        let foreign_instance = (&mut *(import).vmctx).instance();
-        let foreign_memory = &mut *(import).from;
+        let foreign_instance = (&*import.vmctx).instance();
+        let foreign_memory = &*import.from;
         let foreign_index = foreign_instance.memory_index(foreign_memory);
         foreign_instance.memory(foreign_index)
     };
