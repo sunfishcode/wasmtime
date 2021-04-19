@@ -21,7 +21,7 @@ pub struct WasiCtx {
 
 impl WasiCtx {
     pub fn builder(
-        random: RefCell<Box<dyn RngCore>>,
+        random: Box<dyn RngCore>,
         clocks: WasiClocks,
         sched: Box<dyn WasiSched>,
         table: Rc<RefCell<Table>>,
@@ -29,7 +29,7 @@ impl WasiCtx {
         WasiCtxBuilder(WasiCtx {
             args: StringArray::new(),
             env: StringArray::new(),
-            random,
+            random: RefCell::new(random),
             clocks,
             sched,
             table,

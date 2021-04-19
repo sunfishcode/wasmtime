@@ -13,7 +13,7 @@ pub fn instantiate(data: &[u8], bin_name: &str, workspace: Option<&Path>) -> any
 
         // Create our wasi context.
         // Additionally register any preopened directories if we have them.
-        let mut builder = WasiCtxBuilder::new();
+        let mut builder = WasiCtxBuilder::new()?;
 
         builder = builder
             .arg(bin_name)?
@@ -93,7 +93,7 @@ pub fn instantiate_inherit_stdio(
 
         // Create our wasi context.
         // Additionally register any preopened directories if we have them.
-        let mut builder = WasiCtxBuilder::new();
+        let mut builder = WasiCtxBuilder::new()?;
 
         builder = builder.arg(bin_name)?.arg(".")?.inherit_stdio();
 

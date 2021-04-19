@@ -50,13 +50,13 @@ use wasi_common::{table::Table, Error, WasiCtx, WasiFile};
 pub struct WasiCtxBuilder(wasi_common::WasiCtxBuilder);
 
 impl WasiCtxBuilder {
-    pub fn new() -> Self {
-        WasiCtxBuilder(WasiCtx::builder(
-            random_ctx(),
+    pub fn new() -> Result<Self, Error> {
+        Ok(WasiCtxBuilder(WasiCtx::builder(
+            random_ctx()?,
             clocks_ctx(),
             sched_ctx(),
             Rc::new(RefCell::new(Table::new())),
-        ))
+        )))
     }
     pub fn env(self, var: &str, value: &str) -> Result<Self, wasi_common::StringArrayError> {
         let s = self.0.env(var, value)?;
@@ -124,6 +124,14 @@ impl WasiCtxBuilder {
     }
 }
 
-pub fn random_ctx() -> RefCell<Box<dyn RngCore>> {
-    RefCell::new(Box::new(unsafe { cap_rand::rngs::OsRng::default() }))
+pub fn random_ctx() -> Result<Box<dyn RngCore>, Error> {
+    let mut rng = unsafe { cap_rand::rngs::OsRng::default() };
+
+    // Ensure that we can read at least one byte from `OsRng`, so that we can
+    // be reasonably confident that no further errors will occur.
+    // <https://docs.rs/getrandom/latest/getrandom/#error-handling>
+    let mut one = [0u8; 1];
+    rng.try_fill_bytes(&mut one)?;
+
+    Ok(Box::new(rng))
 }

@@ -210,7 +210,7 @@ impl BenchState {
 
         // Create a WASI environment.
 
-        let mut cx = WasiCtxBuilder::new();
+        let mut cx = WasiCtxBuilder::new()?;
         cx = cx.inherit_stdio();
         // Allow access to the working directory so that the benchmark can read
         // its input workload(s).

@@ -204,7 +204,7 @@ enum WasiInstance {
 }
 
 fn create_wasi_ctx(config: wasi_config_t) -> Result<Rc<RefCell<WasiCtx>>> {
-    let mut builder = WasiCtxBuilder::new();
+    let mut builder = WasiCtxBuilder::new()?;
     if config.inherit_args {
         builder = builder.inherit_args()?;
     } else if !config.args.is_empty() {

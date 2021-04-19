@@ -498,7 +498,7 @@ fn parse_dwarf_info() -> Result<()> {
     let mut linker = Linker::new(&store);
     wasmtime_wasi::Wasi::new(
         &store,
-        wasmtime_wasi::sync::WasiCtxBuilder::new()
+        wasmtime_wasi::sync::WasiCtxBuilder::new()?
             .inherit_stdio()
             .build()?,
     )

@@ -360,7 +360,7 @@ fn populate_with_wasi(
     wasi_modules: &WasiModules,
 ) -> Result<()> {
     // Add the current snapshot to the linker.
-    let mut builder = WasiCtxBuilder::new();
+    let mut builder = WasiCtxBuilder::new()?;
     builder = builder.inherit_stdio().args(argv)?.envs(vars)?;
 
     for (name, dir) in preopen_dirs.into_iter() {

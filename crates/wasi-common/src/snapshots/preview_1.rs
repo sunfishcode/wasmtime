@@ -1072,7 +1072,7 @@ impl<'a> wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
 
     fn random_get(&self, buf: &GuestPtr<u8>, buf_len: types::Size) -> Result<(), Error> {
         let mut buf = buf.as_array(buf_len).as_slice_mut()?;
-        self.random.borrow_mut().try_fill_bytes(buf.deref_mut())?;
+        self.random.borrow_mut().fill_bytes(buf.deref_mut());
         Ok(())
     }
 

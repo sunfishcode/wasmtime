@@ -24,7 +24,7 @@ fn main() -> Result<()> {
     // will have access to.
     assert!(Wasi::set_context(
         &store,
-        WasiCtxBuilder::new()
+        WasiCtxBuilder::new()?
             .inherit_stdio()
             .inherit_args()?
             .build()?

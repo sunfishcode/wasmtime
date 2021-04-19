@@ -15,7 +15,7 @@ fn main() -> Result<()> {
     let mut linker = Linker::new(&store);
     let wasi = Wasi::new(
         &store,
-        WasiCtxBuilder::new()
+        WasiCtxBuilder::new()?
             .inherit_stdio()
             .inherit_args()?
             .build()?,
