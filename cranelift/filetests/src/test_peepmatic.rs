@@ -1,7 +1,6 @@
 //! Test command for `peepmatic`-generated peephole optimizers.
 
 use crate::subtest::{run_filecheck, Context, SubTest};
-use cranelift_codegen;
 use cranelift_codegen::ir::Function;
 use cranelift_reader::TestCommand;
 use std::borrow::Cow;

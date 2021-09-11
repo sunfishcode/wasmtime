@@ -6,7 +6,6 @@
 //! The resulting function is sent to `filecheck`.
 
 use crate::subtest::{run_filecheck, Context, SubTest};
-use cranelift_codegen;
 use cranelift_codegen::ir::Function;
 use cranelift_preopt::optimize;
 use cranelift_reader::TestCommand;

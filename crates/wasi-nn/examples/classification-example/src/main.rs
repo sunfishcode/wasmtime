@@ -1,6 +1,5 @@
 use std::convert::TryInto;
 use std::fs;
-use wasi_nn;
 
 pub fn main() {
     let xml = fs::read_to_string("fixture/model.xml").unwrap();

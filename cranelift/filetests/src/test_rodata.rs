@@ -3,7 +3,6 @@
 //! The `rodata` test command runs each function through the full code generator pipeline
 
 use crate::subtest::{run_filecheck, Context, SubTest};
-use cranelift_codegen;
 use cranelift_codegen::binemit::{self, CodeInfo};
 use cranelift_codegen::ir;
 use cranelift_codegen::ir::{Function, Value};
