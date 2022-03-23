@@ -55,10 +55,18 @@ pub async fn poll_oneoff<'a>(poll: &mut Poll<'a>) -> Result<(), Error> {
             let revents = pollfd.revents();
             let (nbytes, rwsub) = match rwsub {
                 Subscription::Read(sub) => {
+                    if !revents.contains(PollFlags::IN) {
+                        continue;
+                    }
                     let ready = sub.file.num_ready_bytes().await?;
                     (std::cmp::max(ready, 1), sub)
                 }
-                Subscription::Write(sub) => (0, sub),
+                Subscription::Write(sub) => {
+                    if !revents.contains(PollFlags::OUT) {
+                        continue;
+                    }
+                    (0, sub)
+                }
                 _ => unreachable!(),
             };
             if revents.contains(PollFlags::NVAL) {
