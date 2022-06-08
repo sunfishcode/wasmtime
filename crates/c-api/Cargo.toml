@@ -29,7 +29,7 @@ wat = { version = "1.0.42", optional = true }
 # Optional dependencies for the `wasi` feature
 wasi-cap-std-sync = { path = "../wasi-common/cap-std-sync", optional = true }
 wasmtime-wasi = { path = "../wasi", optional = true }
-cap-std = { version = "0.24.1", optional = true }
+cap-std = { git = "https://github.com/bytecodealliance/cap-std", branch = "rustix-0.35.6-beta.2", optional = true }
 
 [features]
 default = ['jitdump', 'wat', 'wasi', 'cache']

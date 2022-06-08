@@ -21,7 +21,7 @@ tempfile = "3.1.0"
 os_pipe = "0.9"
 anyhow = "1.0.19"
 wat = "1.0.42"
-cap-std = "0.24.1"
+cap-std = { git = "https://github.com/bytecodealliance/cap-std", branch = "rustix-0.35.6-beta.2" }
 tokio = { version = "1.8.0", features = ["rt-multi-thread"] }
 
 [features]
