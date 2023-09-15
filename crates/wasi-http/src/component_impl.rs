@@ -6,8 +6,9 @@ use crate::WasiHttpView;
 use anyhow::anyhow;
 use std::str;
 use std::vec::Vec;
+use wasmtime::component::Resource;
 use wasmtime::{AsContext, AsContextMut, Caller, Extern, Memory};
-use wasmtime_wasi::preview2::bindings::{io, poll};
+use wasmtime_wasi::preview2::bindings::io::{self, poll};
 
 const MEMORY: &str = "memory";
 
@@ -110,7 +111,7 @@ fn u32_array_to_u8(arr: &[u32]) -> Vec<u8> {
     result
 }
 
-pub fn add_component_to_linker<T: WasiHttpView>(
+pub fn add_component_to_linker<T: WasiHttpView + Sync>(
     linker: &mut wasmtime::Linker<T>,
     get_cx: impl Fn(&mut T) -> &mut T + Send + Sync + Copy + 'static,
 ) -> anyhow::Result<()> {
@@ -388,18 +389,15 @@ pub fn add_component_to_linker<T: WasiHttpView>(
         },
     )?;
     linker.func_wrap1_async(
-        "wasi:poll/poll",
-        "drop-pollable",
+        "wasi:io/poll",
+        "drop",
         move |mut caller: Caller<'_, T>, id: u32| {
             Box::new(async move {
                 let ctx = get_cx(caller.data_mut());
+                tracing::trace!("[module='wasi:io/poll' function='drop'] call id={:?}", id);
+                let result = poll::HostPollable::drop(ctx, Resource::new_own(id));
                 tracing::trace!(
-                    "[module='wasi:poll/poll' function='drop-pollable'] call id={:?}",
-                    id
-                );
-                let result = poll::poll::Host::drop_pollable(ctx, id);
-                tracing::trace!(
-                    "[module='wasi:poll/poll' function='drop-pollable'] return result={:?}",
+                    "[module='wasi:io/poll' function='drop'] return result={:?}",
                     result
                 );
                 result
@@ -407,8 +405,8 @@ pub fn add_component_to_linker<T: WasiHttpView>(
         },
     )?;
     linker.func_wrap3_async(
-        "wasi:poll/poll",
-        "poll-oneoff",
+        "wasi:io/poll",
+        "poll-list",
         move |mut caller: Caller<'_, T>, base_ptr: u32, len: u32, out_ptr: u32| {
             Box::new(async move {
                 let memory = memory_get(&mut caller)?;
@@ -424,12 +422,12 @@ pub fn add_component_to_linker<T: WasiHttpView>(
 
                 let ctx = get_cx(caller.data_mut());
                 tracing::trace!(
-                    "[module='wasi:poll/poll' function='poll-oneoff'] call in={:?}",
+                    "[module='wasi:io/poll' function='poll-list'] call in={:?}",
                     vec
                 );
-                let result = poll::poll::Host::poll_oneoff(ctx, vec).await;
+                let result = poll::Host::poll_list(ctx, vec).await;
                 tracing::trace!(
-                    "[module='wasi:poll/poll' function='poll-oneoff'] return result={:?}",
+                    "[module='wasi:io/poll' function='poll-list'] return result={:?}",
                     result
                 );
                 let result = result?;
@@ -465,7 +463,7 @@ pub fn add_component_to_linker<T: WasiHttpView>(
                     "[module='wasi:io/streams' function='drop-input-stream'] call id={:?}",
                     id
                 );
-                let result = io::streams::Host::drop_input_stream(ctx, id);
+                let result = io::streams::HostInputStream::drop(ctx, Resource::new_own(id));
                 tracing::trace!(
                     "[module='wasi:io/streams' function='drop-input-stream'] return result={:?}",
                     result
@@ -481,12 +479,12 @@ pub fn add_component_to_linker<T: WasiHttpView>(
             Box::new(async move {
                 let ctx = get_cx(caller.data_mut());
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='drop-output-stream'] call id={:?}",
+                    "[module='wasi:io/streams' function='drop'] call id={:?}",
                     id
                 );
-                let result = io::streams::Host::drop_output_stream(ctx, id);
+                let result = io::streams::HostInputStream::drop(ctx, Resource::new_own(id));
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='drop-output-stream'] return result={:?}",
+                    "[module='wasi:io/streams' function='drop'] return result={:?}",
                     result
                 );
                 result
@@ -504,7 +502,9 @@ pub fn add_component_to_linker<T: WasiHttpView>(
                     stream,
                     len
                 );
-                let result = io::streams::Host::read(ctx, stream, len).await;
+                let result =
+                    io::streams::HostInputStream::read(ctx, Resource::new_borrow(stream), len)
+                        .await;
                 tracing::trace!(
                     "[module='wasi:io/streams' function='read'] return result={:?}",
                     result
@@ -543,7 +543,12 @@ pub fn add_component_to_linker<T: WasiHttpView>(
                     stream,
                     len
                 );
-                let result = io::streams::Host::blocking_read(ctx, stream, len).await;
+                let result = io::streams::HostInputStream::blocking_read(
+                    ctx,
+                    Resource::new_borrow(stream),
+                    len,
+                )
+                .await;
                 tracing::trace!(
                     "[module='wasi:io/streams' function='blocking-read'] return result={:?}",
                     result
@@ -573,17 +578,18 @@ pub fn add_component_to_linker<T: WasiHttpView>(
     )?;
     linker.func_wrap1_async(
         "wasi:io/streams",
-        "subscribe-to-input-stream",
+        "subscribe",
         move |mut caller: Caller<'_, T>, stream: u32| {
             Box::new(async move {
                 let ctx = get_cx(caller.data_mut());
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='subscribe-to-input-stream'] call stream={:?}",
+                    "[module='wasi:io/streams' function='subscribe'] call stream={:?}",
                     stream
                 );
-                let result = io::streams::Host::subscribe_to_input_stream(ctx, stream);
+                let result =
+                    io::streams::HostInputStream::subscribe(ctx, Resource::new_borrow(stream));
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='subscribe-to-input-stream'] return result={:?}",
+                    "[module='wasi:io/streams' function='subscribe'] return result={:?}",
                     result
                 );
                 result
@@ -592,17 +598,18 @@ pub fn add_component_to_linker<T: WasiHttpView>(
     )?;
     linker.func_wrap1_async(
         "wasi:io/streams",
-        "subscribe-to-output-stream",
+        "subscribe",
         move |mut caller: Caller<'_, T>, stream: u32| {
             Box::new(async move {
                 let ctx = get_cx(caller.data_mut());
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='subscribe-to-output-stream'] call stream={:?}",
+                    "[module='wasi:io/streams' function='subscribe'] call stream={:?}",
                     stream
                 );
-                let result = io::streams::Host::subscribe_to_output_stream(ctx, stream);
+                let result =
+                    io::streams::HostOutputStream::subscribe(ctx, Resource::new_borrow(stream));
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='subscribe-to-output-stream'] return result={:?}",
+                    "[module='wasi:io/streams' function='subscribe'] return result={:?}",
                     result
                 );
                 result
@@ -727,7 +734,11 @@ pub fn add_component_to_linker<T: WasiHttpView>(
                     stream,
                     body
                 );
-                let result = io::streams::Host::write(ctx, stream, body.into()).await;
+                let result = io::streams::HostOutputStream::write(
+                    ctx,
+                    Resource::new_borrow(stream),
+                    body.into(),
+                );
                 tracing::trace!(
                     "[module='wasi:io/streams' function='write'] return result={:?}",
                     result
@@ -759,7 +770,7 @@ pub fn add_component_to_linker<T: WasiHttpView>(
                     stream,
                     body
                 );
-                let result = io::streams::Host::blocking_write_and_flush(ctx, stream, body.into()).await;
+                let result = io::streams::HostOutputStream::blocking_write_and_flush(ctx, Resource::new_borrow(stream), body.into()).await;
                 tracing::trace!(
                     "[module='wasi:io/streams' function='blocking-write-and-flush'] return result={:?}",
                     result
@@ -984,8 +995,9 @@ pub mod sync {
     };
     use crate::WasiHttpView;
     use anyhow::anyhow;
+    use wasmtime::component::Resource;
     use wasmtime::{AsContext, AsContextMut, Caller};
-    use wasmtime_wasi::preview2::bindings::sync_io::{io, poll};
+    use wasmtime_wasi::preview2::bindings::sync_io::io::{self, poll};
 
     fn allocate_guest_pointer<T: Send>(
         caller: &mut Caller<'_, T>,
@@ -1268,25 +1280,22 @@ pub mod sync {
             },
         )?;
         linker.func_wrap(
-            "wasi:poll/poll",
+            "wasi:io/poll",
             "drop-pollable",
             move |mut caller: Caller<'_, T>, id: u32| -> anyhow::Result<()> {
                 let ctx = get_cx(caller.data_mut());
+                tracing::trace!("[module='wasi:io/poll' function='drop'] call id={:?}", id);
+                let result = poll::HostPollable::drop(ctx, Resource::new_own(id));
                 tracing::trace!(
-                    "[module='wasi:poll/poll' function='drop-pollable'] call id={:?}",
-                    id
-                );
-                let result = poll::poll::Host::drop_pollable(ctx, id);
-                tracing::trace!(
-                    "[module='wasi:poll/poll' function='drop-pollable'] return result={:?}",
+                    "[module='wasi:io/poll' function='drop'] return result={:?}",
                     result
                 );
                 result
             },
         )?;
         linker.func_wrap(
-            "wasi:poll/poll",
-            "poll-oneoff",
+            "wasi:io/poll",
+            "poll-list",
             move |mut caller: Caller<'_, T>,
                   base_ptr: u32,
                   len: u32,
@@ -1305,12 +1314,12 @@ pub mod sync {
 
                 let ctx = get_cx(caller.data_mut());
                 tracing::trace!(
-                    "[module='wasi:poll/poll' function='poll-oneoff'] call in={:?}",
+                    "[module='wasi:io/poll' function='poll-list'] call in={:?}",
                     vec
                 );
-                let result = poll::poll::Host::poll_oneoff(ctx, vec);
+                let result = poll::Host::poll_list(ctx, vec);
                 tracing::trace!(
-                    "[module='wasi:poll/poll' function='poll-oneoff'] return result={:?}",
+                    "[module='wasi:io/poll' function='poll-list'] return result={:?}",
                     result
                 );
                 let result = result?;
@@ -1336,16 +1345,16 @@ pub mod sync {
         )?;
         linker.func_wrap(
             "wasi:io/streams",
-            "drop-input-stream",
+            "drop",
             move |mut caller: Caller<'_, T>, id: u32| -> anyhow::Result<()> {
                 let ctx = get_cx(caller.data_mut());
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='drop-input-stream'] call id={:?}",
+                    "[module='wasi:io/streams' function='drop'] call id={:?}",
                     id
                 );
-                let result = io::streams::Host::drop_input_stream(ctx, id);
+                let result = io::streams::HostInputStream::drop(ctx, Resource::new_own(id));
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='drop-input-stream'] return result={:?}",
+                    "[module='wasi:io/streams' function='drop'] return result={:?}",
                     result
                 );
                 result
@@ -1353,16 +1362,16 @@ pub mod sync {
         )?;
         linker.func_wrap(
             "wasi:io/streams",
-            "drop-output-stream",
+            "drop",
             move |mut caller: Caller<'_, T>, id: u32| -> anyhow::Result<()> {
                 let ctx = get_cx(caller.data_mut());
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='drop-output-stream'] call id={:?}",
+                    "[module='wasi:io/streams' function='drop'] call id={:?}",
                     id
                 );
-                let result = io::streams::Host::drop_output_stream(ctx, id);
+                let result = io::streams::HostOutputStream::drop(ctx, Resoruce::new_own(id));
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='drop-output-stream'] return result={:?}",
+                    "[module='wasi:io/streams' function='drop'] return result={:?}",
                     result
                 );
                 result
@@ -1382,7 +1391,8 @@ pub mod sync {
                     stream,
                     len
                 );
-                let result = io::streams::Host::read(ctx, stream, len);
+                let result =
+                    io::streams::HostInputStream::read(ctx, Resource::new_borrow(stream), len);
                 tracing::trace!(
                     "[module='wasi:io/streams' function='read'] return result={:?}",
                     result
@@ -1424,7 +1434,7 @@ pub mod sync {
                     stream,
                     len
                 );
-                let result = io::streams::Host::blocking_read(ctx, stream, len);
+                let result = io::streams::HostInputStream::blocking_read(ctx, stream, len);
                 tracing::trace!(
                     "[module='wasi:io/streams' function='blocking-read'] return result={:?}",
                     result
@@ -1453,23 +1463,23 @@ pub mod sync {
         )?;
         linker.func_wrap(
             "wasi:io/streams",
-            "subscribe-to-input-stream",
+            "subscribe",
             move |mut caller: Caller<'_, T>, stream: u32| -> anyhow::Result<u32> {
                 let ctx = get_cx(caller.data_mut());
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='subscribe-to-input-stream'] call stream={:?}",
+                    "[module='wasi:io/streams' function='subscribe'] call stream={:?}",
                     stream
                 );
-                let result = io::streams::Host::subscribe_to_input_stream(ctx, stream)?;
+                let result = io::streams::HostInputStream::subscribe(ctx, stream)?;
                 // TODO: necessary until this PR has been merged:
                 // https://github.com/bytecodealliance/wasmtime/pull/6877
-                let oneoff_result = poll::poll::Host::poll_oneoff(ctx, vec![result])?;
+                let list_result = poll::Host::poll_list(ctx, vec![result])?;
                 tracing::trace!(
-                    "[module='wasi:poll/poll' function='poll-oneoff'] return result={:?}",
-                    oneoff_result
+                    "[module='wasi:io/poll' function='poll-list'] return result={:?}",
+                    list_result
                 );
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='subscribe-to-input-stream'] return result=Ok({:?})",
+                    "[module='wasi:io/streams' function='subscribe'] return result=Ok({:?})",
                     result
                 );
                 Ok(result)
@@ -1477,23 +1487,23 @@ pub mod sync {
         )?;
         linker.func_wrap(
             "wasi:io/streams",
-            "subscribe-to-output-stream",
+            "subscribe",
             move |mut caller: Caller<'_, T>, stream: u32| -> anyhow::Result<u32> {
                 let ctx = get_cx(caller.data_mut());
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='subscribe-to-output-stream'] call stream={:?}",
+                    "[module='wasi:io/streams' function='subscribe'] call stream={:?}",
                     stream
                 );
-                let result = io::streams::Host::subscribe_to_output_stream(ctx, stream)?;
+                let result = io::streams::HostOutputStream::subscribe(ctx, stream)?;
                 // TODO: necessary until this PR has been merged:
                 // https://github.com/bytecodealliance/wasmtime/pull/6877
-                let oneoff_result = poll::poll::Host::poll_oneoff(ctx, vec![result])?;
+                let list_result = poll::Host::poll_list(ctx, vec![result])?;
                 tracing::trace!(
-                    "[module='wasi:poll/poll' function='poll-oneoff'] return result={:?}",
-                    oneoff_result
+                    "[module='wasi:io/poll' function='poll-list'] return result={:?}",
+                    list_result
                 );
                 tracing::trace!(
-                    "[module='wasi:io/streams' function='subscribe-to-output-stream'] return result=Ok({:?})",
+                    "[module='wasi:io/streams' function='subscribe'] return result=Ok({:?})",
                     result
                 );
                 Ok(result)
@@ -1518,7 +1528,7 @@ pub mod sync {
                     stream,
                     body
                 );
-                let result = io::streams::Host::write(ctx, stream, body.into());
+                let result = io::streams::HostOutputStream::write(ctx, stream, body.into());
                 tracing::trace!(
                     "[module='wasi:io/streams' function='write'] return result={:?}",
                     result
@@ -1554,7 +1564,7 @@ pub mod sync {
                     stream,
                     body
                 );
-                let result = io::streams::Host::blocking_write_and_flush(ctx, stream, body.into());
+                let result = io::streams::HostOutputStream::blocking_write_and_flush(ctx, stream, body.into());
                 tracing::trace!(
                     "[module='wasi:io/streams' function='blocking-write-and-flush'] return result={:?}",
                     result
