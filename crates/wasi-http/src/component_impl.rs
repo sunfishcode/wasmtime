@@ -1369,7 +1369,7 @@ pub mod sync {
                     "[module='wasi:io/streams' function='drop'] call id={:?}",
                     id
                 );
-                let result = io::streams::HostOutputStream::drop(ctx, Resoruce::new_own(id));
+                let result = io::streams::HostOutputStream::drop(ctx, Resource::new_own(id));
                 tracing::trace!(
                     "[module='wasi:io/streams' function='drop'] return result={:?}",
                     result
