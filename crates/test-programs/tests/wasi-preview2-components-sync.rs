@@ -54,8 +54,8 @@ fn run(name: &str, inherit_stdio: bool) -> Result<()> {
             builder.env(var, val);
         }
 
-        let mut table = Table::new();
-        let wasi = builder.build(&mut table)?;
+        let table = Table::new();
+        let wasi = builder.build();
         struct Ctx {
             wasi: WasiCtx,
             table: Table,

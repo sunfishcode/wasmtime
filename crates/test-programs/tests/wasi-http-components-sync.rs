@@ -73,7 +73,7 @@ fn run(name: &str) -> anyhow::Result<()> {
     let stdout = MemoryOutputPipe::new(4096);
     let stderr = MemoryOutputPipe::new(4096);
     let r = {
-        let mut table = Table::new();
+        let table = Table::new();
         let component = get_component(name);
 
         // Create our wasi context.
@@ -84,7 +84,7 @@ fn run(name: &str) -> anyhow::Result<()> {
         for (var, val) in test_programs::wasi_tests_environment() {
             builder.env(var, val);
         }
-        let wasi = builder.build(&mut table)?;
+        let wasi = builder.build();
         let http = WasiHttpCtx {};
 
         let (mut store, command) = instantiate_component(component, Ctx { table, wasi, http })?;

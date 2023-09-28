@@ -245,7 +245,7 @@ impl WasiCtxBuilder {
     /// # Panics
     ///
     /// Panics if this method is called twice.
-    pub fn build(&mut self, table: &mut Table) -> Result<WasiCtx, anyhow::Error> {
+    pub fn build(&mut self) -> WasiCtx {
         assert!(!self.built);
 
         let Self {
@@ -265,7 +265,7 @@ impl WasiCtxBuilder {
         } = mem::replace(self, Self::new());
         self.built = true;
 
-        Ok(WasiCtx {
+        WasiCtx {
             stdin,
             stdout,
             stderr,
@@ -278,7 +278,7 @@ impl WasiCtxBuilder {
             insecure_random_seed,
             wall_clock,
             monotonic_clock,
-        })
+        }
     }
 }
 

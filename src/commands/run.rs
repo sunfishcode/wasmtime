@@ -937,10 +937,7 @@ impl RunCommand {
             builder.inherit_network(ambient_authority());
         }
 
-        let data = store.data_mut();
-        let table = Arc::get_mut(&mut data.preview2_table).unwrap();
-        let ctx = builder.build(table)?;
-        data.preview2_ctx = Some(Arc::new(ctx));
+        store.data_mut().preview2_ctx = Some(Arc::new(builder.build()));
         Ok(())
     }
 }
