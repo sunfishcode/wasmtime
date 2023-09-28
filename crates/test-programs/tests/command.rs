@@ -8,7 +8,7 @@ use wasmtime::{
 use wasmtime_wasi::preview2::{
     command::{add_to_linker, Command},
     pipe::MemoryInputPipe,
-    DirPerms, FilePerms, HostMonotonicClock, HostWallClock, IsATTY, Table, WasiCtx, WasiCtxBuilder,
+    DirPerms, FilePerms, HostMonotonicClock, HostWallClock, Table, WasiCtx, WasiCtxBuilder,
     WasiView,
 };
 
@@ -177,10 +177,9 @@ async fn time() -> Result<()> {
 async fn stdin() -> Result<()> {
     let mut table = Table::new();
     let wasi = WasiCtxBuilder::new()
-        .stdin(
-            MemoryInputPipe::new("So rested he by the Tumtum tree".into()),
-            IsATTY::No,
-        )
+        .stdin(MemoryInputPipe::new(
+            "So rested he by the Tumtum tree".into(),
+        ))
         .build(&mut table)?;
 
     let (mut store, command) =
@@ -197,10 +196,9 @@ async fn stdin() -> Result<()> {
 async fn poll_stdin() -> Result<()> {
     let mut table = Table::new();
     let wasi = WasiCtxBuilder::new()
-        .stdin(
-            MemoryInputPipe::new("So rested he by the Tumtum tree".into()),
-            IsATTY::No,
-        )
+        .stdin(MemoryInputPipe::new(
+            "So rested he by the Tumtum tree".into(),
+        ))
         .build(&mut table)?;
 
     let (mut store, command) =
@@ -469,7 +467,7 @@ async fn stream_pollable_lifetimes() -> Result<()> {
         let mut table = Table::new();
         let wasi = WasiCtxBuilder::new()
             .args(&["correct"])
-            .stdin(MemoryInputPipe::new(" ".into()), IsATTY::No)
+            .stdin(MemoryInputPipe::new(" ".into()))
             .build(&mut table)?;
 
         let (mut store, command) = instantiate(
@@ -489,7 +487,7 @@ async fn stream_pollable_lifetimes() -> Result<()> {
         let mut table = Table::new();
         let wasi = WasiCtxBuilder::new()
             .args(&["trap"])
-            .stdin(MemoryInputPipe::new(" ".into()), IsATTY::No)
+            .stdin(MemoryInputPipe::new(" ".into()))
             .build(&mut table)?;
 
         let (mut store, command) = instantiate(

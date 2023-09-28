@@ -6,7 +6,7 @@ use wasmtime::{
 use wasmtime_wasi::preview2::{
     command::sync::{add_to_linker, Command},
     pipe::MemoryOutputPipe,
-    IsATTY, Table, WasiCtx, WasiCtxBuilder, WasiView,
+    Table, WasiCtx, WasiCtxBuilder, WasiView,
 };
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
@@ -78,8 +78,8 @@ fn run(name: &str) -> anyhow::Result<()> {
 
         // Create our wasi context.
         let mut builder = WasiCtxBuilder::new();
-        builder.stdout(stdout.clone(), IsATTY::No);
-        builder.stderr(stderr.clone(), IsATTY::No);
+        builder.stdout(stdout.clone());
+        builder.stderr(stderr.clone());
         builder.arg(name);
         for (var, val) in test_programs::wasi_tests_environment() {
             builder.env(var, val);
