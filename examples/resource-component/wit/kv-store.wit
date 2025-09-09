@@ -13,5 +13,6 @@ interface kvdb {
 world kv-database {
   import kvdb;
   import log: func(msg: string);
+  import wasi:io/streams@0.2.6;
   export replace-value: func(key: string, value: string) -> option<string>;
 }

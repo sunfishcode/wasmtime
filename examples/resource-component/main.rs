@@ -46,7 +46,7 @@ impl ComponentRunStates {
 }
 
 bindgen!({
-    path: "./examples/resource-component/kv-store.wit",
+    path: "./examples/resource-component/wit",
     world: "kv-database",
     // Interactions with `ResourceTable` can possibly trap so enable the ability
     // to return traps from generated functions.
